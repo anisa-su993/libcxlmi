@@ -1088,6 +1088,10 @@ int send_cmd_cci(struct cxlmi_endpoint *ep, struct cxlmi_tunnel_info *ti,
 	if (cxlmi_ep_has_quirk(ep, CXLMI_QUIRK_MIN_INTER_COMMAND_TIME))
 		cxlmi_record_resp_time(ep);
 
+	if (rc) {
+		cxlmi_msg(ep->ctx, LOG_ERR, "Execute %xh failed with rc=%d\n",
+				(req_msg->command_set<<8) + req_msg->command, rc);
+	}
 	return rc;
 }
 
