@@ -180,6 +180,36 @@ static int play_with_device_timestamp(struct cxlmi_endpoint *ep)
 	return 0;
 }
 
+static int issue_dynamic_capacity_operation(struct cxlmi_endpoint *ep, bool add)
+{
+	struct cxlmi_cmd_memdev_add_dyn_cap_response *req;
+	uint64_t dpa, len;
+	int i = 0, rc = -1;
+
+	req = calloc(1, sizeof(*req) + sizeof(req->extents[0]) * 2);
+	if (!req)
+		return -1;
+
+	req->num_extents_updated = 2;
+	req->flags = 0;
+	dpa = 0;
+	len = 16 * 1024 * 1024;
+	for (i = 0; i < 2; i++) {
+		req->extents[i].start_dpa = dpa;
+		req->extents[i].len = len;
+		dpa += len;
+	}
+
+	if (add) {
+		printf("Send response to device for accepting %d extents\n",
+				req->num_extents_updated);
+		rc = cxlmi_cmd_memdev_add_dyn_cap_response(ep, NULL, req);
+	}
+
+    free(req);
+	return rc;
+}
+
 static int play_with_dcd(struct cxlmi_endpoint *ep)
 {
 	int i, rc;
@@ -221,6 +251,12 @@ static int play_with_dcd(struct cxlmi_endpoint *ep)
 	rc = 0;
 
 	if (out->num_regions) {
+		rc = show_dc_extents(ep);
+		if (rc)
+			goto free_out;
+		rc = issue_dynamic_capacity_operation(ep, true);
+		if (rc)
+			goto free_out;
 		rc = show_dc_extents(ep);
 	}
 
