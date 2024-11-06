@@ -566,6 +566,9 @@ int cxlmi_cmd_memdev_get_dc_extent_list(struct cxlmi_endpoint *ep,
 int cxlmi_cmd_memdev_add_dyn_cap_response(struct cxlmi_endpoint *ep,
 			struct cxlmi_tunnel_info *ti,
 			struct cxlmi_cmd_memdev_add_dyn_cap_response *in);
+int cxlmi_cmd_memdev_release_dyn_cap(struct cxlmi_endpoint *ep,
+			struct cxlmi_tunnel_info *ti,
+			struct cxlmi_cmd_memdev_release_dyn_cap *in);
 #ifdef __cplusplus
 }
 #endif

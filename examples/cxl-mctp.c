@@ -204,6 +204,12 @@ static int issue_dynamic_capacity_operation(struct cxlmi_endpoint *ep, bool add)
 		printf("Send response to device for accepting %d extents\n",
 				req->num_extents_updated);
 		rc = cxlmi_cmd_memdev_add_dyn_cap_response(ep, NULL, req);
+	} else {
+		struct cxlmi_cmd_memdev_release_dyn_cap *in;
+		in = (struct cxlmi_cmd_memdev_release_dyn_cap *)req;
+		printf("Notify device to release %d extents\n",
+				req->num_extents_updated);
+		rc = cxlmi_cmd_memdev_release_dyn_cap(ep, NULL, in);
 	}
 
     free(req);
@@ -255,6 +261,12 @@ static int play_with_dcd(struct cxlmi_endpoint *ep)
 		if (rc)
 			goto free_out;
 		rc = issue_dynamic_capacity_operation(ep, true);
+		if (rc)
+			goto free_out;
+		rc = show_dc_extents(ep);
+		if (rc)
+			goto free_out;
+		rc = issue_dynamic_capacity_operation(ep, false);
 		if (rc)
 			goto free_out;
 		rc = show_dc_extents(ep);
