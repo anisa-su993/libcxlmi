@@ -178,6 +178,52 @@ static int play_with_device_timestamp(struct cxlmi_endpoint *ep)
 	return 0;
 }
 
+static int play_with_dcd(struct cxlmi_endpoint *ep)
+{
+	int i, rc;
+	struct cxlmi_cmd_memdev_get_dc_config_req req = {
+		.region_cnt = 8,
+		.start_region_id = 0,
+	};
+	struct cxlmi_cmd_memdev_get_dc_config_rsp *out;
+
+	out = calloc(1, sizeof(*out));
+	if (!out)
+		return -1;
+
+	rc = cxlmi_cmd_memdev_get_dc_config(ep, NULL, &req, out);
+	if (rc) {
+		rc = -1;
+		goto free_out;
+	}
+
+	printf("Print out get DC config response: \n");
+	printf("# of regions: %d\n", out->num_regions);
+	printf("# of regions returned: %d\n", out->regions_returned);
+
+	for (i = 0; i < out->regions_returned; i++) {
+		printf("region %d: base %lu decode_len %lu region_len %lu block_size %lu\n",
+				req.start_region_id + i,
+				out->region_configs[i].base,
+				out->region_configs[i].decode_len,
+				out->region_configs[i].region_len,
+				out->region_configs[i].block_size);
+	}
+
+	printf("# of extents supported: %d\n", out->num_extents_supported);
+	printf("# of extents available: %d\n", out->num_extents_available);
+	printf("# of tags supported: %d\n", out->num_tags_supported);
+	printf("# of tags available: %d\n", out->num_tags_available);
+
+	printf("Print out get DC config response: done\n");
+	rc = 0;
+
+free_out:
+	free(out);
+
+	return rc;
+}
+
 static const uint8_t cel_uuid[0x10] = { 0x0d, 0xa9, 0xc0, 0xb5,
 					0xbf, 0x41,
 					0x4b, 0x78,
@@ -267,6 +313,63 @@ static int show_cel(struct cxlmi_endpoint *ep, int cel_size)
 done:
 	free(ret);
 	return rc;
+}
+
+static int support_opcode(struct cxlmi_endpoint *ep, int cel_size,
+		uint16_t opcode, bool *supported)
+{
+	struct cxlmi_cmd_get_log_req in = {
+		.offset = 0,
+		.length = cel_size,
+	};
+	struct cxlmi_cmd_get_log_cel_rsp *ret;
+	int i, rc;
+
+	ret = calloc(1, sizeof(*ret) + cel_size);
+	if (!ret)
+		return -1;
+
+	memcpy(in.uuid, cel_uuid, sizeof(in.uuid));
+	rc = cxlmi_cmd_get_log_cel(ep, NULL, &in, ret);
+	if (rc)
+		goto done;
+
+	for (i = 0; i < cel_size / sizeof(*ret); i++) {
+		if (opcode == ret[i].opcode) {
+			*supported = true;
+			break;
+		}
+	}
+done:
+	free(ret);
+	return rc;
+}
+
+static bool ep_supports_op(struct cxlmi_endpoint *ep, uint16_t opcode)
+{
+	int rc;
+	size_t cel_size;
+	struct cxlmi_cmd_get_supported_logs *gsl;
+	bool op_support = false;
+
+	gsl = calloc(1, sizeof(*gsl) + maxlogs * sizeof(*gsl->entries));
+	if (!gsl)
+		return op_support;
+
+	rc = cxlmi_cmd_get_supported_logs(ep, NULL, gsl);
+	if (rc)
+		return op_support;
+
+	rc = parse_supported_logs(gsl, &cel_size);
+	if (rc)
+		return op_support;
+	else {
+		/* we know there is a CEL */
+		rc = support_opcode(ep, cel_size, opcode, &op_support);
+	}
+
+	free(gsl);
+	return op_support;
 }
 
 static int get_device_logs(struct cxlmi_endpoint *ep)
@@ -413,6 +516,9 @@ int main(int argc, char **argv)
 		rc = play_with_poison_mgmt(ep);
 
 		rc = toggle_abort(ep);
+
+		if (ep_supports_op(ep, 0x4800))
+			play_with_dcd(ep);
 
 		cxlmi_close(ep);
 	}
