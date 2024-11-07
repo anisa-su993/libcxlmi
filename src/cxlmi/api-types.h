@@ -709,4 +709,19 @@ struct cxlmi_cmd_fmapi_set_qos_bw_limit {
 	uint8_t start_ld_id;
 	uint8_t qos_limit_fraction[];
 } __attribute__((packed));
+
+/* CXL r3.1 Section 7.6.7.6.1: Get DCD Info (Opcode 5600h) */
+struct cxlmi_cmd_fmapi_get_dcd_info {
+	uint8_t num_hosts;
+	uint8_t num_dc_regions_per_host;
+	uint8_t reserved_1[0x2];
+	uint16_t capacity_selection_policies;
+	uint8_t reserved_2[0x2];
+	uint16_t capacity_removal_policies;
+	uint8_t sanitize_on_release_config_mask;
+	uint8_t reserved_3;
+	uint64_t total_dynamic_capacity;
+	uint64_t reg_supported_block_sizes[8];
+} __attribute__((packed));
+
 #endif
