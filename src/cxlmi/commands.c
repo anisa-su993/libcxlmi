@@ -2497,6 +2497,48 @@ CXLMI_EXPORT int cxlmi_cmd_fmapi_set_qos_bw_limit(struct cxlmi_endpoint *ep,
 	return rc;
 }
 
+CXLMI_EXPORT int cxlmi_cmd_fmapi_get_dcd_info(struct cxlmi_endpoint *ep,
+				    struct cxlmi_tunnel_info *ti,
+				    struct cxlmi_cmd_fmapi_get_dcd_info *ret)
+{
+	struct cxlmi_cci_msg req;
+	struct cxlmi_cmd_fmapi_get_dcd_info *rsp_pl;
+	_cleanup_free_ struct cxlmi_cci_msg *rsp = NULL;
+	int i, rc;
+	ssize_t rsp_sz;
+
+	CXLMI_BUILD_BUG_ON(sizeof(*ret) != 84);
+
+	arm_cci_request(ep, &req, 0, DCD_MANAGEMENT, GET_DCD_INFO);
+
+	rsp_sz = sizeof(*rsp) + sizeof(*rsp_pl);
+	rsp = calloc(1, rsp_sz);
+	if (!rsp)
+		return -1;
+	rc = send_cmd_cci(ep, ti, &req, sizeof(req), rsp, rsp_sz, rsp_sz);
+	if (rc)
+		return rc;
+
+	memset(ret, 0, sizeof(*ret));
+	rsp_pl = (struct cxlmi_cmd_fmapi_get_dcd_info *)rsp->payload;
+
+	ret->num_hosts = rsp_pl->num_hosts;
+	ret->num_supported_dc_regions = rsp_pl->num_supported_dc_regions;
+	ret->capacity_selection_policies = le16_to_cpu(rsp_pl->capacity_selection_policies);
+	ret->capacity_removal_policies = le16_to_cpu(rsp_pl->capacity_removal_policies);
+	ret->sanitize_on_release_config_mask = rsp_pl->sanitize_on_release_config_mask;
+	ret->total_dynamic_capacity = le64_to_cpu(rsp_pl->total_dynamic_capacity);
+
+	for (i = 0; i < ret->num_supported_dc_regions; i++) {
+		memcpy(&ret->supported_block_sizes[i],
+				&rsp_pl->supported_block_sizes[i],
+				8);
+	}
+
+	return rc;
+}
+
+
 #define CXL_CAPACITY_MULTIPLIER   (256 * 1024 * 1024)
 CXLMI_EXPORT int cxlmi_cmd_memdev_get_dc_config(struct cxlmi_endpoint *ep,
 		struct cxlmi_tunnel_info *ti,
