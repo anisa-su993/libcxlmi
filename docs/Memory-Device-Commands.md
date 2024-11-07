@@ -531,3 +531,28 @@ int cxlmi_cmd_memdev_get_dc_extent_list(struct cxlmi_endpoint *ep,
 			struct cxlmi_cmd_memdev_get_dc_extent_list_req *in,
 			struct cxlmi_cmd_memdev_get_dc_extent_list_rsp *ret);
    ```
+
+## Add Dynamic Capacity Response (4802h)
+
+Input payload:
+
+   ```C
+struct cxlmi_cmd_memdev_add_dyn_cap_response {
+	uint32_t num_extents_updated;
+	uint8_t flags;
+	uint8_t rsvd1[3];
+	struct {
+		uint64_t start_dpa;
+		uint64_t len;
+		uint8_t rsvd[8];
+	} extents[];
+};
+   ```
+
+Command name:
+
+   ```C
+int cxlmi_cmd_memdev_add_dyn_cap_response(struct cxlmi_endpoint *ep,
+			struct cxlmi_tunnel_info *ti,
+			struct cxlmi_cmd_memdev_add_dyn_cap_response *in);
+   ```

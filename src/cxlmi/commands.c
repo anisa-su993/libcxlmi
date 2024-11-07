@@ -2223,3 +2223,34 @@ CXLMI_EXPORT int cxlmi_cmd_memdev_get_dc_extent_list(struct cxlmi_endpoint *ep,
 
 	return rc;
 }
+
+CXLMI_EXPORT int cxlmi_cmd_memdev_add_dyn_cap_response(struct cxlmi_endpoint *ep,
+		struct cxlmi_tunnel_info *ti,
+		struct cxlmi_cmd_memdev_add_dyn_cap_response *in)
+{
+	struct cxlmi_cmd_memdev_add_dyn_cap_response *req_pl;
+	_cleanup_free_ struct cxlmi_cci_msg *req = NULL;
+	struct cxlmi_cci_msg rsp;
+	ssize_t req_sz;
+	int i, rc = -1;
+
+	req_sz = sizeof(*req_pl) + sizeof(*req)
+		+ in->num_extents_updated * sizeof(in->extents[0]);
+	req = calloc(1, req_sz);
+	if (!req)
+		return -1;
+
+	arm_cci_request(ep, req, sizeof(*req_pl), DCD_CONFIG, ADD_DYN_CAP_RSP);
+	req_pl = (struct cxlmi_cmd_memdev_add_dyn_cap_response *)req->payload;
+	req_pl->num_extents_updated = cpu_to_le32(in->num_extents_updated);
+	req_pl->flags = in->flags;
+
+	for (i = 0; i < in->num_extents_updated; i++) {
+		req_pl->extents[i].start_dpa = cpu_to_le64(in->extents[i].start_dpa);
+		req_pl->extents[i].len = cpu_to_le64(in->extents[i].len);
+	}
+
+	rc = send_cmd_cci(ep, ti, req, req_sz, &rsp, sizeof(rsp), sizeof(rsp));
+
+	return rc;
+}
