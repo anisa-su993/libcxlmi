@@ -2285,3 +2285,40 @@ CXLMI_EXPORT int cxlmi_cmd_memdev_release_dyn_cap(struct cxlmi_endpoint *ep,
 
 	return rc;
 }
+
+CXLMI_EXPORT int cxlmi_cmd_get_dcd_info(struct cxlmi_endpoint *ep,
+				    struct cxlmi_tunnel_info *ti,
+				    struct cxlmi_cmd_get_dcd_info *ret)
+{
+	int rc;
+	ssize_t rsp_sz;
+	struct cxlmi_cmd_get_dcd_info *rsp_pl;
+	struct cxlmi_cci_msg req;
+	_cleanup_free_ struct cxlmi_cci_msg *rsp = NULL;
+
+	CXLMI_BUILD_BUG_ON(sizeof(*ret) != 84);
+
+	arm_cci_request(ep, &req, 0, DCD_MANAGEMENT, GET_DCD_INFO);
+	rc = send_cmd_cci(ep, ti, &req, sizeof(req), rsp, rsp_sz, rsp_sz);
+	if (rc)
+		return rc;
+
+	rsp_pl = (struct cxlmi_cmd_get_dcd_info *)rsp->payload;
+
+	ret->capacity_selection_policies = le16_to_cpu(rsp_pl->capacity_selection_policies);
+	ret->capacity_removal_policies = le16_to_cpu(rsp_pl->capacity_removal_policies);
+	ret->total_dynamic_capacity = le64_to_cpu(rsp_pl->total_dynamic_capacity);
+	ret->reg_0_block_sz_mask = le64_to_cpu(rsp_pl->reg_0_block_sz_mask);
+	ret->reg_1_block_sz_mask = le64_to_cpu(rsp_pl->reg_1_block_sz_mask);
+	ret->reg_2_block_sz_mask = le64_to_cpu(rsp_pl->reg_2_block_sz_mask);
+	ret->reg_3_block_sz_mask = le64_to_cpu(rsp_pl->reg_3_block_sz_mask);
+	ret->reg_4_block_sz_mask = le64_to_cpu(rsp_pl->reg_4_block_sz_mask);
+	ret->reg_5_block_sz_mask = le64_to_cpu(rsp_pl->reg_5_block_sz_mask);
+	ret->reg_6_block_sz_mask = le64_to_cpu(rsp_pl->reg_6_block_sz_mask);
+	ret->reg_7_block_sz_mask = le64_to_cpu(rsp_pl->reg_7_block_sz_mask);
+	ret->num_hosts = rsp_pl->num_hosts;
+	ret->num_supported_dc_regions = rsp_pl->num_supported_dc_regions;
+	ret->sanitize_on_release_config_mask = rsp_pl->sanitize_on_release_config_mask;
+
+	return rc;
+}

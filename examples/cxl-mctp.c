@@ -567,6 +567,10 @@ static int play_with_poison_mgmt(struct cxlmi_endpoint *ep)
 	return 0;
 }
 
+int test_dcd_device() {
+	
+}
+
 int main(int argc, char **argv)
 {
 	struct cxlmi_ctx *ctx;

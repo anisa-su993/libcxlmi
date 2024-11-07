@@ -640,4 +640,25 @@ struct cxlmi_cmd_memdev_release_dyn_cap {
 		uint8_t rsvd[8];
 	} __attribute__((packed)) extents[];
 } __attribute__((packed));
+
+/* CXL r3.1 Section 7.6.7.6.1: Get DCD Info (Opcode 5600h) */
+struct cxlmi_cmd_get_dcd_info {
+	uint8_t num_hosts;
+	uint8_t num_supported_dc_regions;
+	uint8_t reserved_1[0x2];
+	uint16_t capacity_selection_policies;
+	uint8_t reserved_2[0x2];
+	uint16_t capacity_removal_policies;
+	uint8_t sanitize_on_release_config_mask;
+	uint8_t reserved_3;
+	uint64_t total_dynamic_capacity;
+	uint64_t reg_0_block_sz_mask;
+	uint64_t reg_1_block_sz_mask;
+	uint64_t reg_2_block_sz_mask;
+	uint64_t reg_3_block_sz_mask;
+	uint64_t reg_4_block_sz_mask;
+	uint64_t reg_5_block_sz_mask;
+	uint64_t reg_6_block_sz_mask;
+	uint64_t reg_7_block_sz_mask;
+} __attribute__((packed));
 #endif

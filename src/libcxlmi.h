@@ -569,6 +569,12 @@ int cxlmi_cmd_memdev_add_dyn_cap_response(struct cxlmi_endpoint *ep,
 int cxlmi_cmd_memdev_release_dyn_cap(struct cxlmi_endpoint *ep,
 			struct cxlmi_tunnel_info *ti,
 			struct cxlmi_cmd_memdev_release_dyn_cap *in);
+/*
+ * Definitions for FMAPI DCD Management Commands. per CXL r3.1 Table 8-221.
+ */
+int cxlmi_cmd_get_dcd_info(struct cxlmi_endpoint *ep,
+			struct cxlmi_tunnel_info *ti,
+			struct cxlmi_cmd_get_dcd_info *ret);
 #ifdef __cplusplus
 }
 #endif
