@@ -559,6 +559,10 @@ int cxlmi_cmd_memdev_get_dc_config(struct cxlmi_endpoint *ep,
 			struct cxlmi_tunnel_info *ti,
 			struct cxlmi_cmd_memdev_get_dc_config_req *in,
 			struct cxlmi_cmd_memdev_get_dc_config_rsp *ret);
+int cxlmi_cmd_memdev_get_dc_extent_list(struct cxlmi_endpoint *ep,
+			struct cxlmi_tunnel_info *ti,
+			struct cxlmi_cmd_memdev_get_dc_extent_list_req *in,
+			struct cxlmi_cmd_memdev_get_dc_extent_list_rsp *ret);
 #ifdef __cplusplus
 }
 #endif
