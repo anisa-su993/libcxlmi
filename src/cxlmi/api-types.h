@@ -625,4 +625,19 @@ struct cxlmi_cmd_memdev_add_dyn_cap_response {
 		uint8_t rsvd[8];
 	} __attribute__((packed)) extents[];
 } __attribute__((packed));
+
+/*
+ * CXL r3.1 Section 8.2.9.9.9.4 Release Dynamic Capacity
+ * (Opcode 4803h)
+ */
+struct cxlmi_cmd_memdev_release_dyn_cap {
+	uint32_t num_extents_updated;
+	uint8_t flags;
+	uint8_t rsvd1[3];
+	struct {
+		uint64_t start_dpa;
+		uint64_t len;
+		uint8_t rsvd[8];
+	} __attribute__((packed)) extents[];
+} __attribute__((packed));
 #endif

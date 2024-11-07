@@ -556,3 +556,28 @@ int cxlmi_cmd_memdev_add_dyn_cap_response(struct cxlmi_endpoint *ep,
 			struct cxlmi_tunnel_info *ti,
 			struct cxlmi_cmd_memdev_add_dyn_cap_response *in);
    ```
+
+## Release Dynamic Capacity (4803h)
+
+Input payload:
+
+   ```C
+struct cxlmi_cmd_memdev_release_dyn_cap {
+	uint32_t num_extents_updated;
+	uint8_t flags;
+	uint8_t rsvd1[3];
+	struct {
+		uint64_t start_dpa;
+		uint64_t len;
+		uint8_t rsvd[8];
+	} extents[];
+};
+   ```
+
+Command name:
+
+   ```C
+int cxlmi_cmd_memdev_release_dyn_cap(struct cxlmi_endpoint *ep,
+			struct cxlmi_tunnel_info *ti,
+			struct cxlmi_cmd_memdev_release_dyn_cap *in);
+   ```
