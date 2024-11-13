@@ -11,6 +11,21 @@
 
 #include <libcxlmi.h>
 
+typedef enum CxlExtentSelectionPolicy {
+    CXL_EXTENT_SELECTION_POLICY_FREE,
+    CXL_EXTENT_SELECTION_POLICY_CONTIGUOUS,
+    CXL_EXTENT_SELECTION_POLICY_PRESCRIPTIVE,
+    CXL_EXTENT_SELECTION_POLICY_ENABLE_SHARED_ACCESS,
+    CXL_EXTENT_SELECTION_POLICY__MAX,
+} CxlExtentSelectionPolicy;
+
+typedef enum CxlExtentRemovalPolicy {
+    CXL_EXTENT_REMOVAL_POLICY_TAG_BASED,
+    CXL_EXTENT_REMOVAL_POLICY_PRESCRIPTIVE,
+    CXL_EXTENT_REMOVAL_POLICY__MAX,
+} CxlExtentRemovalPolicy;
+
+
 static int show_dc_extents(struct cxlmi_endpoint *ep);
 
 static int show_memdev_info(struct cxlmi_endpoint *ep)
@@ -567,6 +582,275 @@ static int play_with_poison_mgmt(struct cxlmi_endpoint *ep)
 	return 0;
 }
 
+static int test_fmapi_get_dcd_info(struct cxlmi_endpoint *ep)
+{
+	int i, rc;
+	struct cxlmi_cmd_fmapi_get_dcd_info *out;
+
+	out = calloc(1, sizeof(*out));
+	if (!out)
+		return -1;
+
+	rc = cxlmi_cmd_fmapi_get_dcd_info(ep, NULL, out);
+	if (rc) {
+		rc = -1;
+		goto free_out;
+	}
+
+	printf("0x5600: FMAPI Get DCD Info Response:\n");
+	printf("\t# hosts supported: %hhu\n", out->num_hosts);
+	printf("\t# dc regions available/host: %hhu\n", out->num_dc_regions_per_host);
+	printf("\tcapacity_selection_policies: %hu\n", out->capacity_selection_policies);
+	printf("\tcapacity_removal_policies: %hu\n", out->capacity_removal_policies);
+	printf("\tsanitize_on_release: %hhu\n", out->sanitize_on_release_config_mask);
+	printf("\ttotal dynamic capacity: %lu\n", out->total_dynamic_capacity);
+
+	for (i = 0; i < out->num_dc_regions_per_host; i++) {
+		printf("\tregion %d: block_size %lu\n", i, out->reg_supported_block_sizes[i]);
+	}
+
+free_out:
+	free(out);
+	return rc;
+}
+
+static int test_fmapi_get_host_dc_reg_config(struct cxlmi_endpoint *ep)
+{
+	int rc;
+	struct cxlmi_cmd_fmapi_get_host_dc_reg_config_req dc_reg_config_req = {
+		.host_id = 0,
+		.region_cnt = 5,
+		.starting_reg_index = 0,
+	};
+	struct cxlmi_cmd_fmapi_get_host_dc_reg_config_rsp *dc_reg_config_rsp;
+
+	printf("0x5601: FMAPI Get DC Region Config Response:\n");
+	dc_reg_config_rsp = calloc(1, sizeof(*dc_reg_config_rsp));
+
+	if (!dc_reg_config_rsp) {
+		return -1;
+	}
+
+	rc = cxlmi_cmd_fmapi_get_dc_reg_config(ep, NULL, &dc_reg_config_req, dc_reg_config_rsp);
+	if (rc) {
+		rc = -1;
+		goto free_out;
+	}
+	printf("\thost id: %hu\n", dc_reg_config_rsp->host_id);
+	printf("\tnum available regions: %hhu\n", dc_reg_config_rsp->num_available_regs);
+	printf("\tnum regions returned: %hhu\n", dc_reg_config_rsp->num_regs_returned);
+	printf("\tnum_extents_supported: %u\n", dc_reg_config_rsp->num_extents_supported);
+	printf("\tnum_extents_available: %u\n", dc_reg_config_rsp->num_extents_available);
+	printf("\tnum_tags_supported: %u\n", dc_reg_config_rsp->num_tags_supported);
+
+free_out:
+	free(dc_reg_config_rsp);
+	return rc;
+}
+
+static int test_fmapi_set_dc_reg_config(struct cxlmi_endpoint *ep)
+{
+	struct cxlmi_cmd_fmapi_set_dc_reg_config req = {
+		.reg_id = 0,
+		.block_sz = 128,
+		.sanitize_on_release = 0,
+	};
+
+	printf("0x5602: FMAPI Set DC Region Config (No Response Payload)\n");
+
+	if (cxlmi_cmd_fmapi_set_dc_reg_config(ep, NULL, &req)) {
+		return -1;
+	}
+
+	printf("FMAPI Set DC Region Config Success\n");
+
+	return 0;
+
+}
+
+static int test_fmapi_get_dc_reg_extent_list(struct cxlmi_endpoint *ep)
+{
+	int i, rc;
+	struct cxlmi_cmd_fmapi_get_dc_reg_ext_list_req req = {
+		.host_id = 0,
+		.extent_count = 2,
+		.start_ex_indx = 0
+	};
+	struct cxlmi_cmd_fmapi_get_dc_reg_ext_list_rsp *rsp;
+
+	printf("0x5603: FMAPI Get DC Region Extent List\n");
+	rsp = calloc(1, sizeof(*rsp) + req.extent_count * sizeof(rsp->extents[0]));
+
+	if (!rsp) {
+		return -1;
+	}
+
+	rc = cxlmi_cmd_fmapi_get_dc_reg_ext_list(ep, NULL, &req, rsp);
+	if (rc) {
+		rc = -1;
+		goto free_out;
+	}
+
+	printf("\tHost Id: %hu\n", rsp->host_id);
+	printf("\tStarting Extent Index: %u\n", rsp->start_ex_indx);
+	printf("\tNumber of Extents Returned: %u\n", rsp->extents_returned);
+	printf("\tTotal Extents: %u\n", rsp->total_extents);
+	printf("\tExtent List Generation Number: %u\n", rsp->list_generation_num);
+
+	for (i = 0; i < rsp->extents_returned; i++) {
+		printf("\t\tExtent %d Info:\n", i);
+		printf("\t\t\tStart DPA: %lu\n", rsp->extents[i].start_dpa);
+		printf("\t\t\tLength: %lu\n", rsp->extents[i].len);
+	}
+
+free_out:
+	free(rsp);
+	return rc;
+}
+
+static int test_fmapi_initiate_dc_add(struct cxlmi_endpoint *ep)
+{
+	int rc;
+	struct cxlmi_cmd_fmapi_initiate_dc_add_req* req;
+
+	printf("0x5604: FMAPI Initiate DC Add (No Response Payload)\n");
+	req = calloc(1, sizeof(*req) + 1 * sizeof(req->extents[0]));
+	if (!req) {
+		return -1;
+	}
+
+	req->host_id = 0;
+	req->selection_policy = CXL_EXTENT_SELECTION_POLICY_PRESCRIPTIVE;// only policy currently supported in QEMU
+	req->reg_num = 1;
+	req->length = 2097152;
+	req->ext_count = 1;
+
+	req->extents[0].start_dpa = 268435456;	// grabbed from printing reg_1.base and len in qemu.log
+	req->extents[0].len = 2097152;
+
+	rc = cxlmi_cmd_fmapi_initiate_dc_add(ep, NULL, req);
+	if (rc) {
+		rc = -1;
+		goto cleanup;
+	}
+	printf("FMAPI Initiate DC Add Success\n");
+
+cleanup:
+	free(req);
+	return rc;
+}
+
+static int test_fmapi_initiate_dc_release(struct cxlmi_endpoint *ep)
+{
+	int rc;
+	struct cxlmi_cmd_fmapi_initiate_dc_release_req* req;
+
+	printf("0x5605: FMAPI Initiate DC Release (No Response Payload)\n");
+
+	req = calloc(1, sizeof(*req) + sizeof(req->extents[0]));
+
+	if (!req) {
+		return -1;
+	}
+
+	req->host_id = 0;
+	// ignoring forced_removal (bit 4) and sanitize (bit 5) flags for now
+	req->flags = CXL_EXTENT_REMOVAL_POLICY_PRESCRIPTIVE; // only policy currently supported in QEMU
+	req->length = 128;
+	req->ext_count = 1;
+
+	req->extents[0].start_dpa = 0;	// values grabbed from printing reg_0.base and len in qemu.log
+	req->extents[0].len = 128;
+	rc = cxlmi_cmd_fmapi_initiate_dc_release(ep, NULL, req);
+
+	/* Expected to fail with CXL_MBOX_INVALID_PA bc reg_0 not backed by DC extents*/
+	if (rc == 15) {
+		printf("FMAPI Initiate DC Release Failed (expected)\n");
+		rc = 0;
+	} else if (rc) {
+		rc = -1;
+	}
+
+	free(req);
+	return rc;
+}
+
+static int test_fmapi_dc_add_reference(struct cxlmi_endpoint *ep)
+{
+	struct cxlmi_cmd_fmapi_dc_add_ref_req req;
+
+	printf("0x5606: FMAPI DC Add Reference (No Response Payload)\n");
+	if (cxlmi_cmd_fmapi_dc_add_reference(ep, NULL, &req)) {
+		printf("FMAPI DC Add Reference Error\n");
+		return -1;
+	}
+
+	printf("FMAPI DC Add Reference Success\n");
+	return 0;
+}
+
+static int test_fmapi_dc_remove_reference(struct cxlmi_endpoint *ep)
+{
+	struct cxlmi_cmd_fmapi_dc_remove_ref_req req;
+
+	printf("0x5607: FMAPI DC Remove Reference (No Response Payload)\n");
+	if (cxlmi_cmd_fmapi_dc_remove_reference(ep, NULL, &req)) {
+		printf("FMAPI DC Remove Reference Error\n");
+		return -1;
+	}
+
+	printf("FMAPI DC Remove Reference Success\n");
+	return 0;
+}
+
+static int test_fmapi_dc_list_tags(struct cxlmi_endpoint *ep)
+{
+	int rc;
+	struct cxlmi_cmd_fmapi_dc_list_tags_req req = {
+		.start_ind = 0,
+		.max_tags = 2
+	};
+	struct cxlmi_cmd_fmapi_dc_list_tags_rsp * rsp = 
+			calloc(1, sizeof(*rsp) + sizeof(rsp->tags_list[0]));
+	
+	if (!rsp) {
+		return -1;
+	}
+
+	printf("0x5608: FMAPI DC List Tags\n");
+	rc = cxlmi_cmd_fmapi_dc_list_tags(ep, NULL, &req, rsp);
+	if (rc) {
+		rc = -1;
+		goto cleanup;
+	}
+
+	printf("\t Generation Num: %u\n", rsp->generation_num);
+	printf("\t Max Tags: %u\n", rsp->total_num_tags);
+	printf("\t Num Tags Returned: %u\n", rsp->num_tags_returned);
+
+cleanup:
+	free(rsp);
+	return rc;
+}
+
+static int play_with_fmapi_dcd_management(struct cxlmi_endpoint *ep)
+{
+	if (test_fmapi_get_dcd_info(ep) 
+		|| test_fmapi_get_host_dc_reg_config(ep)
+		|| test_fmapi_set_dc_reg_config(ep)
+		|| test_fmapi_get_dc_reg_extent_list(ep)
+		|| test_fmapi_initiate_dc_add(ep)
+		|| test_fmapi_initiate_dc_release(ep)
+		|| test_fmapi_dc_add_reference(ep)
+		|| test_fmapi_dc_remove_reference(ep)
+		|| test_fmapi_dc_list_tags(ep)
+	)
+		return -1;
+
+	return 0;
+
+}
+
 int main(int argc, char **argv)
 {
 	struct cxlmi_ctx *ctx;
@@ -612,18 +896,23 @@ int main(int argc, char **argv)
 	cxlmi_for_each_endpoint_safe(ctx, ep, tmp) {
 		rc = show_device_info(ep);
 
-		rc = play_with_device_timestamp(ep);
+		// rc = play_with_device_timestamp(ep);
 
-		rc = get_device_logs(ep);
+		// rc = get_device_logs(ep);
 
-		rc = play_with_poison_mgmt(ep);
+		// rc = play_with_poison_mgmt(ep);
 
-		rc = toggle_abort(ep);
+		// rc = toggle_abort(ep);
 
-		if (ep_supports_op(ep, 0x4800))
-			play_with_dcd(ep);
+		// if (ep_supports_op(ep, 0x4800))
+		// 	play_with_dcd(ep);
+
+		if (ep_supports_op(ep, 0x5600))
+			play_with_fmapi_dcd_management(ep);
 
 		cxlmi_close(ep);
+
+		printf("-------------------------------------------------\n");
 	}
 
 exit_free_ctx:
