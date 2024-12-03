@@ -2666,6 +2666,38 @@ CXLMI_EXPORT int cxlmi_cmd_fmapi_initiate_dc_add(struct cxlmi_endpoint *ep,
 	return send_cmd_cci(ep, ti, req, req_sz, rsp, rsp_sz, rsp_sz);
 }
 
+CXLMI_EXPORT int cxlmi_cmd_fmapi_initiate_dc_release(struct cxlmi_endpoint *ep,
+				struct cxlmi_tunnel_info *ti,
+				struct cxlmi_cmd_fmapi_initiate_dc_release_req *in)
+{
+	int ext_list_sz;
+	size_t req_sz, rsp_sz;
+	struct cxlmi_cmd_fmapi_initiate_dc_release_req *req_pl;
+	_cleanup_free_ struct cxlmi_cci_msg *req = NULL;
+	_cleanup_free_ struct cxlmi_cci_msg *rsp = NULL;
+
+	ext_list_sz = in->ext_count * sizeof(*in->extents);
+	req_sz = sizeof(*req) + sizeof(*in) + ext_list_sz;
+	req = calloc(1, req_sz);
+	if (!req)
+		return -1;
+
+	arm_cci_request(ep, req, sizeof(*in), DCD_MANAGEMENT, INITIATE_DC_RELEASE);
+	req_pl = (struct cxlmi_cmd_fmapi_initiate_dc_release_req *)req->payload;
+	req_pl->host_id = in->host_id;
+	req_pl->flags = in->flags;
+	req_pl->length = in->length;
+	memcpy(req_pl->tag, in->tag, 0x10);
+	req_pl->ext_count = in->ext_count;
+	memcpy(req_pl->extents, in->extents, ext_list_sz);
+
+	rsp_sz = sizeof(*rsp);
+	rsp = calloc(1, rsp_sz);
+	if (!rsp)
+		return -1;
+	return send_cmd_cci(ep, ti, req, req_sz, rsp, rsp_sz, rsp_sz);
+}
+
 CXLMI_EXPORT int cxlmi_cmd_memdev_get_dc_config(struct cxlmi_endpoint *ep,
 		struct cxlmi_tunnel_info *ti,
 		struct cxlmi_cmd_memdev_get_dc_config_req *in,
