@@ -717,3 +717,18 @@ int cxlmi_cmd_fmapi_dc_add_reference(struct cxlmi_endpoint *ep,
 			struct cxlmi_cmd_fmapi_dc_add_ref_req *in);
    ```
 
+## Dynamic Capacity Remove Reference (5607h)
+Input Payload:
+```C
+struct cxlmi_cmd_fmapi_dc_remove_ref_req {
+	uint8_t tag[0x10];
+};
+```
+
+Command name:
+
+   ```C
+int cxlmi_cmd_fmapi_dc_remove_reference(struct cxlmi_endpoint *ep,
+			struct cxlmi_tunnel_info *ti,
+			struct cxlmi_cmd_fmapi_dc_remove_ref_req *in);
+   ```
