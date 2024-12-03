@@ -732,3 +732,42 @@ int cxlmi_cmd_fmapi_dc_remove_reference(struct cxlmi_endpoint *ep,
 			struct cxlmi_tunnel_info *ti,
 			struct cxlmi_cmd_fmapi_dc_remove_ref_req *in);
    ```
+
+
+
+## Dynamic Capacity Remove Reference (5607h)
+Input Payload:
+
+   ```C
+struct cxlmi_cmd_fmapi_dc_list_tags_req {
+	uint32_t start_ind;
+	uint32_t max_tags;
+};
+   ```
+
+Output Payload:
+   ```C
+struct cxlmi_cmd_fmapi_dc_list_tags_rsp {
+	uint32_t generation_num;
+	uint32_t total_num_tags;
+	uint32_t num_tags_returned;
+	uint8_t validity_bitmap;
+	uint8_t rsvd[3];
+	struct {
+		uint8_t tag[0x10];
+		uint8_t flags;
+		uint8_t rsvd[3];
+		uint8_t ref_bitmap[32];
+		uint8_t pending_ref_bitmap[32];
+	} tags_list[];
+};
+   ```
+
+Command name:
+
+   ```C
+int cxlmi_cmd_fmapi_dc_list_tags(struct cxlmi_endpoint *ep,
+			struct cxlmi_tunnel_info *ti,
+			struct cxlmi_cmd_fmapi_dc_list_tags_req *in,
+			struct cxlmi_cmd_fmapi_dc_list_tags_rsp *ret);
+   ```
