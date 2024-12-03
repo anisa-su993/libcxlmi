@@ -609,6 +609,9 @@ int cxlmi_cmd_fmapi_initiate_dc_add(struct cxlmi_endpoint *ep,
 				struct cxlmi_tunnel_info *ti,
 				struct cxlmi_cmd_fmapi_initiate_dc_add_req *in);
 
+int cxlmi_cmd_fmapi_initiate_dc_release(struct cxlmi_endpoint *ep,
+				struct cxlmi_tunnel_info *ti,
+				struct cxlmi_cmd_fmapi_initiate_dc_release_req *in);
 #ifdef __cplusplus
 }
 #endif
