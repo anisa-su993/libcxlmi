@@ -701,3 +701,19 @@ int cxlmi_cmd_fmapi_initiate_dc_release(struct cxlmi_endpoint *ep,
 			struct cxlmi_cmd_fmapi_initiate_dc_release_req *in);
    ```
 
+## Dynamic Capacity Add Reference (5606h)
+Input Payload:
+```C
+struct cxlmi_cmd_fmapi_dc_add_ref_req {
+	uint8_t tag[0x10];
+};
+```
+
+Command name:
+
+   ```C
+int cxlmi_cmd_fmapi_dc_add_reference(struct cxlmi_endpoint *ep,
+			struct cxlmi_tunnel_info *ti,
+			struct cxlmi_cmd_fmapi_dc_add_ref_req *in);
+   ```
+
