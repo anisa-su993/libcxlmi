@@ -616,6 +616,11 @@ int cxlmi_cmd_fmapi_initiate_dc_release(struct cxlmi_endpoint *ep,
 int cxlmi_cmd_fmapi_dc_add_reference(struct cxlmi_endpoint *ep,
 				struct cxlmi_tunnel_info *ti,
 				struct cxlmi_cmd_fmapi_dc_add_ref_req *in);
+
+int cxlmi_cmd_fmapi_dc_remove_reference(struct cxlmi_endpoint *ep,
+				struct cxlmi_tunnel_info *ti,
+				struct cxlmi_cmd_fmapi_dc_remove_ref_req *in);
+
 #ifdef __cplusplus
 }
 #endif
