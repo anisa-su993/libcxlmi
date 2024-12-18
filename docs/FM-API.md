@@ -543,3 +543,45 @@ int cxlmi_cmd_fmapi_get_dcd_info(struct cxlmi_endpoint *ep,
 			struct cxlmi_tunnel_info *ti,
 			struct cxlmi_cmd_fmapi_get_dcd_info *ret);
    ```
+
+## Get Host DC Region Config (5601h)
+Input Payload:
+```C
+struct cxlmi_cmd_fmapi_get_host_dc_reg_config_req {
+	uint16_t host_id;
+	uint8_t region_cnt;
+	uint8_t start_region_id;
+};
+```
+Return Payload:
+
+   ```C
+struct cxlmi_cmd_fmapi_get_host_dc_reg_config_rsp {
+	uint16_t host_id;
+	uint8_t num_regions;
+	uint8_t regions_returned;
+	struct {
+		uint64_t base;
+		uint64_t decode_len;
+		uint64_t region_len;
+		uint64_t block_size;
+		uint8_t flags;
+		uint8_t rsvd[3];
+		uint8_t sanitize_on_rls;
+		uint8_t rsvd2[3];
+	} region_configs[8];
+	uint32_t num_extents_supported;
+	uint32_t num_extents_available;
+	uint32_t num_tags_supported;
+	uint32_t num_tags_available;
+};
+   ```
+
+Command name:
+
+   ```C
+int cxlmi_cmd_fmapi_get_dc_reg_config(struct cxlmi_endpoint *ep,
+			struct cxlmi_tunnel_info *ti,
+			struct cxlmi_cmd_fmapi_get_host_dc_reg_config_req *in,
+			struct cxlmi_cmd_fmapi_get_host_dc_reg_config_rsp *ret);
+   ```
