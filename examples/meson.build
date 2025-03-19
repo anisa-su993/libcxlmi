@@ -15,3 +15,10 @@ executable(
     dependencies: libcxlmi_dep,
     include_directories: [inc]
 )
+
+executable(
+    'test-fmapi',
+    ['test-fmapi.c'],
+    dependencies: libcxlmi_dep,
+    include_directories: [inc]
+)
