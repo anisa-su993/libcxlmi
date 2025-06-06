@@ -658,3 +658,26 @@ int cxlmi_cmd_get_feature(struct cxlmi_endpoint *ep,
 						  struct cxlmi_cmd_get_feature_req *in,
 						  struct cxlmi_cmd_get_feature_rsp *ret);
    ```
+
+## Set Feature (0502h)
+
+Input payload:
+
+   ```C
+struct cxlmi_cmd_set_feature {
+	uint8_t feature_id[0x10];
+	uint32_t set_feature_flags;
+	uint16_t offset;
+	uint8_t version;
+	uint8_t rsvd[9];
+	uint8_t feature_data[MAX_FEATURE_SIZE];
+};
+   ```
+
+Command name:
+
+   ```C
+int cxlmi_cmd_set_feature(struct cxlmi_endpoint *ep,
+						  struct cxlmi_tunnel_info *ti,
+						  struct cxlmi_cmd_set_feature *in);
+   ```

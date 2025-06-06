@@ -479,6 +479,9 @@ int cxlmi_cmd_get_feature(struct cxlmi_endpoint *ep,
 						  struct cxlmi_tunnel_info *ti,
 						  struct cxlmi_cmd_get_feature_req *in,
 						  struct cxlmi_cmd_get_feature_rsp *ret);
+int cxlmi_cmd_set_feature(struct cxlmi_endpoint *ep,
+						  struct cxlmi_tunnel_info *ti,
+						  struct cxlmi_cmd_set_feature *in);
 
 /*
  * Definitions for Memory Device Commands, per CXL r3.1 Table 8-126.
