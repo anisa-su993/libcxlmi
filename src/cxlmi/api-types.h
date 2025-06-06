@@ -265,8 +265,20 @@ struct cxlmi_cmd_get_feature_req {
 	uint8_t selection;
 } __attribute__((packed));
 
+/* CXL r3.2 Figure 8-14: Mailbox Registers */
+#define CXL_MAILBOX_MAX_PAYLOAD_SIZE (1 << 11)
 struct cxlmi_cmd_get_feature_rsp {
-	uint8_t *feature_data;
+	uint8_t feature_data[CXL_MAILBOX_MAX_PAYLOAD_SIZE];
+} __attribute__((packed));
+
+/* CXL r3.2 Section 8.2.10.6.3 Set Feature (Opcode 0502h) */
+struct cxlmi_cmd_set_feature {
+	uint8_t feature_id[0x10];
+	uint32_t set_feature_flags;
+	uint16_t offset;
+	uint8_t version;
+	uint8_t rsvd[9];
+	uint8_t feature_data[];
 } __attribute__((packed));
 
 /* CXL r3.1 Section 8.2.9.9.1.1: Identify Memory Device (Opcode 4000h) */

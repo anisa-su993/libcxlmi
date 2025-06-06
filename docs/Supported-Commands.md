@@ -41,9 +41,9 @@ This document summarizes the support status of CXL commands within the `libcxlmi
 |                     | ✅ `0404h`        | [Populate Log](https://github.com/computexpresslink/libcxlmi/blob/main/docs/Generic-Component-Commands.md#populate-log-0404h)          |
 |                     | ✅ `0405h`        | [Get Supported Logs Sub-List](https://github.com/computexpresslink/libcxlmi/blob/main/docs/Generic-Component-Commands.md#get-supported-logs-sub-list-0405h) |
 | **Features** |                   |                                            |
-|                     | `0500h`           | Get Supported Features                     |
-|                     | `0501h`           | Get Feature                                |
-|                     | `0502h`           | Set Feature                                |
+|                     | ✅ `0500h`           | Get Supported Features                     |
+|                     | ✅ `0501h`           | Get Feature                                |
+|                     | ✅ `0502h`           | Set Feature                                |
 | **Maintenance** |                   |                                            |
 |                     | `0600h`           | Perform Maintenance                        |
 | **PBR Components** |                   |                                            |
