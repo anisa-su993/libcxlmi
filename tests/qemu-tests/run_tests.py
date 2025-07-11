@@ -3,6 +3,7 @@ import os
 import shutil
 import argparse
 import subprocess
+import time
 from topo import SUITES
 from parse_docs import generate_default_opcode_map, log_opcode_map
 from generate_tests import generate_test_file, generate_build_file, load_xml
@@ -15,9 +16,35 @@ VM_USER = 'root'
 VM_HOSTNAME = 'localhost'
 opcode_map = {}
 
-# QEMU=tools.system_path("QEMU_ROOT") + "/build/qemu-system-x86_64"
-# KERNEL=tools.system_path("KERNEL_ROOT") + "/arch/x86/boot/bzImage"
-# CXL_TEST_TOOL_DIR=os.path.join(CURR_DIR, 'cxl_test_tool/')
+def is_qemu_running():
+    try:
+        # Run 'ps aux' and check if any line contains 'qemu' (excluding grep itself)
+        ps = subprocess.run(['ps', 'aux'], capture_output=True, text=True, check=True)
+        lines = ps.stdout.splitlines()
+        for line in lines:
+            if 'qemu' in line and 'grep' not in line:
+                return True, line
+        return False, None
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to run ps: {e}")
+        return False, None
+
+def wait_for_qemu_shutdown(timeout=60, interval=5):
+    start = time.time()
+    while True:
+        running, proc_line = is_qemu_running()
+        if running:
+            print("❌ QEMU is still running — expected it to be powered off.")
+            print(proc_line)
+        else:
+            print("✅ QEMU has shut down as expected.")
+            return 0
+
+        if time.time() - start > timeout:
+            print(f"Timeout of {timeout} seconds reached while waiting for QEMU shutdown.")
+            return 1
+
+        time.sleep(interval)
 
 def run_shell_cmd(cmd:str, echo=True):
     if echo:
@@ -32,6 +59,9 @@ def run_on_vm(cmd:str):
 
 def install_libcxlmi_on_vm(target_dir="/tmp/libcxlmi"):
     print('Copy libcxlmi to VM')
+    print('Install necessary packages on VM')
+    run_on_vm('apt-get update && apt-get install -y rsync')
+    run_on_vm('apt-get install -y meson libdbus-1-dev git cmake locales')
     cmd = f"""rsync -av -e 'ssh -p {VM_PORT}' \
           --exclude='.git/' \
           --exclude='build/' \
@@ -47,8 +77,9 @@ def install_libcxlmi_on_vm(target_dir="/tmp/libcxlmi"):
 
 def start_vm(suite):
     # Start VM
+    print(f"STARTING VM: {suite}")
     topo = suite['qemu_str']
-    run_shell_cmd(f'yes "" | cxl-tool --run --raw -T \'{topo}\'')
+    run_shell_cmd(f'cxl-tool --run -A tcg --raw -T \'{topo}\'')
 
     print('-------------------------------------------------')
     print('Sleep for 60s while VM boots...')
@@ -57,15 +88,16 @@ def start_vm(suite):
 
     # Set up MCTP
     if suite["mctp"] is not None:
-        run_shell_cmd("yes '' | cxl-tool --setup-mctp")
+        run_shell_cmd("cxl-tool --setup-mctp")
         print('-------------------------------------------------')
 
     # Load drivers and ndctl
     print("Installing NDCTL")
-    run_shell_cmd("yes '' | cxl-tool --install-ndctl")
+    run_shell_cmd("apt-get update")
+    run_shell_cmd("cxl-tool --install-ndctl")
     print('-------------------------------------------------')
     print("Loading Drivers")
-    run_shell_cmd("yes '' | cxl-tool  --load-drv")
+    run_shell_cmd("cxl-tool  --load-drv")
     print('-------------------------------------------------')
 
     # Show topo info as debug output
@@ -183,10 +215,12 @@ def run_suite(suite) -> tuple[int, int]:
     # Shut down VM and clean up
     print('Shutting down VM...')
     run_shell_cmd('cxl-tool --shutdown')
+    wait_for_qemu_shutdown()
 
     return (num_passed, total_tests)
 
 def run_all():
+    print("RUN_ALL")
     num_passed = 0
     total_tests = 0
 
@@ -218,6 +252,7 @@ def add_args(parser):
     parser.add_argument('-s', '--suite', type=str, required=False, help='test suite (defined in topo.py)')
 
 def main():
+    print("MAIN")
     # Parse args
     parser = argparse.ArgumentParser()
     add_args(parser)
@@ -226,9 +261,13 @@ def main():
     # Create output dir for generating test code
     os.makedirs(CURR_DIR + '/output', exist_ok=True)
 
+    print("OPCODE MAP")
     # Parse opcode map
     opcode_map = generate_default_opcode_map()
     log_opcode_map(opcode_map)
+
+    print("TEST RUN_SHELL_CMD")
+    run_shell_cmd("ls", echo=True)
 
     num_passed = 0
     total_tests = 0

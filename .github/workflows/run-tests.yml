@@ -1,8 +1,9 @@
 name: Run Tests
 
 env:
-  KERNEL_URL: https://github.com/anisa-su993/anisa-linux-kernel/releases/download/v1
+  URL_BASE: https://github.com/anisa-su993/anisa-linux-kernel/releases/download/v1
   VM_PORT: 2025
+  PYTHONUNBUFFERED: 1
 
 on:
   pull_request:
@@ -11,6 +12,9 @@ on:
 jobs:
   dispatch:
     runs-on: ubuntu-latest
+    container:
+      image: catthehacker/ubuntu:act-latest
+      options: --user root
     steps:
       # Checkout the current repo
       - name: Checkout current repo
@@ -22,32 +26,51 @@ jobs:
       # Download Kernel Image
       - name: Download bzImage
         run: |
-            URL="${KERNEL_URL}/bzImage"
-            KERNEL_DIR=~/linux/arch/x86/boot/bzImage
-            mkdir -p ~/linux/arch/x86/boot
-            curl -L -o $KERNEL_DIR $URL
+            URL="${URL_BASE}/bzImage"
+            KERNEL_DIR=~/linux/arch/x86/boot
+            mkdir -p $KERNEL_DIR
+            curl -L -o $KERNEL_DIR/bzImage $URL
             ls -l $KERNEL_DIR
 
       # Download Kernel Modules
       - name: Download Kernel Modules
         run: |
             TAR=6.13.0-rc2+.tar.gz
-            URL="${KERNEL_URL}/${TAR}"
-            mkdir -p /lib/modules
+            URL="${URL_BASE}/${TAR}"
+
+            TARGET_DIR=/opt/lib/modules
+
+            echo "mkdir -p $TARGET_DIR"
+            mkdir -p $TARGET_DIR
+
             curl -L -o $TAR $URL
-            sudo tar -xzf $TAR -C /lib/modules/
-            ls /lib/modules/6.13.0-rc2+
+            sudo tar -xzf $TAR -C $TARGET_DIR
+
+            echo "ls -l $TARGET_DIR"
+            ls -l $TARGET_DIR
+
+            echo "find /opt/lib/modules/6.13.0-rc2+/kernel/drivers/cxl -type f -print"
+            find /opt/lib/modules/6.13.0-rc2+/kernel/drivers/cxl -type f -print
+
+            echo "find /opt/lib/modules/6.13.0-rc2+/kernel/drivers/dax -type f -print"
+            find /opt/lib/modules/6.13.0-rc2+/kernel/drivers/dax -type f -print
+
+            echo "find /opt/lib/modules/6.13.0-rc2+/kernel/drivers/i2c -type f -print"
+            find /opt/lib/modules/6.13.0-rc2+/kernel/drivers/i2c -type f -print
+
+            echo "find /opt/lib/modules/6.13.0-rc2+/kernel/drivers/nvdimm -type f -print"
+            find /opt/lib/modules/6.13.0-rc2+/kernel/drivers/nvdimm -type f -print
 
       # Clone cxl-test-tool and create symlink to it
       - name: Clone cxl-test-tool
         run: |
+          cd ~
           URL="https://github.com/anisa-su993/anisa-cxl-test-tool.git"
           git clone --single-branch --branch libcxlmi-testing https://github.com/anisa-su993/anisa-cxl-test-tool.git cxl-test-tool
           sudo ln -s "$PWD/cxl-test-tool/cxl-tool.py" /usr/local/bin/cxl-tool
 
       # Install dependencies for QEMU and cxl_test_tool
       - name: Install Deps
-        # moreutils used for logging timestamps
         run: |
           pip install psutil tomli sphinx
           sudo apt-get update
@@ -57,7 +80,11 @@ jobs:
       - name: Build QEMU and Create Image
         run: |
           sudo apt-get update
-          cxl-tool --set-vars cxl-test-tool/.vars.config
+          mkdir -p ~/.ssh
+          ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N "" -q
+          ls -l ~/.ssh
+          cat ~/.ssh/*.pub
+          cxl-tool --set-vars ~/cxl-test-tool/.vars.config
           yes "" | cxl-tool --setup-qemu
           yes "" | cxl-tool --build-qemu
           yes "" | cxl-tool --create-image
@@ -72,28 +99,92 @@ jobs:
 
       # Test VM Startup & SSH Connection
       - name: Test VM SSH
-      # echo 'cxl-tool --cmd "cat ~/.ssh/known_hosts"' && cxl-tool --cmd "cat ~/.ssh/known_hosts"
         run: |
-          echo "cxl-tool --run -T RP1" && cxl-tool --run -T RP1
-          echo "sleep 60" && sleep 60
+          TOPO='-object memory-backend-file,id=cxl-mem1,share=on,mem-path=/tmp/cxltest.raw,size=512M -object memory-backend-file,id=cxl-lsa1,share=on,mem-path=/tmp/lsa.raw,size=1M -device pxb-cxl,bus_nr=12,bus=pcie.0,id=cxl.1,hdm_for_passthrough=true -device cxl-rp,port=0,bus=cxl.1,id=root_port13,chassis=0,slot=2 -device cxl-type3,bus=root_port13,memdev=cxl-mem1,lsa=cxl-lsa1,id=cxl-pmem0,sn=0xabcd -M cxl-fmw.0.targets.0=cxl.1,cxl-fmw.0.size=4G,cxl-fmw.0.interleave-granularity=8k'
+          echo "cxl-tool --run -A tcg --raw -T $TOPO"
+          if cxl-tool --run -A tcg --raw -T "$TOPO" | grep -m1 -q "QEMU instance is up, access it:"; then
+            echo "✅ Detected QEMU startup message!"
+          fi
+          echo "sleep 60"
+          sleep 60
+          echo "ssh-keyscan -p $VM_PORT 127.0.0.1"
+          ssh-keyscan -p $VM_PORT 127.0.0.1
           echo "ssh-keyscan -p $VM_PORT 127.0.0.1  | sed 's/\[127\.0\.0\.1\]/[localhost]/' >> ~/.ssh/known_hosts"
           ssh-keyscan -p $VM_PORT 127.0.0.1  | sed 's/\[127\.0\.0\.1\]/[localhost]/' >> ~/.ssh/known_hosts
           echo "cat ~/.ssh/known_hosts" && cat ~/.ssh/known_hosts
           echo 'ssh -v -p 2025 root@localhost "ls"' && ssh -v -p 2025 root@localhost "ls"
-          echo "cxl-tool --shutdown" && cxl-tool --shutdown
+
+          echo "sudo apt-get update && sudo apt-get -y install iproute2"
+          sudo apt-get update && sudo apt-get install -y iproute2
+
+          echo "ss -tnlp | grep 2025"
+          ss -tnlp | grep 2025
+
+          echo "ps aux | grep [q]emu"
+          ps aux | grep [q]emu
+
+          echo "cxl-tool --cmd 'apt-get update'"
+          cxl-tool --cmd 'apt-get update'
+          echo "cxl-tool --install-ndctl"
+          cxl-tool --install-ndctl
+
+          echo "cxl-tool --cmd 'ls -l /lib/modules'"
+          cxl-tool --cmd 'ls -l /lib/modules'
+
+          echo "cxl-tool --cmd 'ls -l /lib/modules/6.13.0-rc2+'"
+          cxl-tool --cmd 'ls -l /lib/modules/6.13.0-rc2+'
+
+          echo "cxl-tool --cmd 'ls -l /lib/modules/6.13.0-rc2+/kernel/drivers'"
+          cxl-tool --cmd 'ls -l /lib/modules/6.13.0-rc2+/kernel/drivers'
+
+          echo "cxl-tool --load-drv"
+          cxl-tool --load-drv
+
+          echo "cxl-tool --shutdown"
+          cxl-tool --shutdown
+
+          echo "sleep 30"
+          sleep 30
+
+          if ps aux | grep -q '[q]emu'; then
+            echo "❌ QEMU is still running — expected it to be powered off."
+            ps aux | grep '[q]emu'  # optional: show the leftover process
+            exit 1
+          else
+            echo "✅ QEMU has shut down as expected."
+          fi
 
       # Run All Tests
       - name: Run Tests
         run: |
             python tests/qemu-tests/run_tests.py
         shell: bash
-        timeout-minutes: 5
+        timeout-minutes: 20
 
       # Ensure logging directories exist
       - name: Ensure logs directory exists
+        if: always()
         run: |
           mkdir -p ~/logs/
           mkdir -p tests/qemu-tests/output
+
+      - name: cat logs
+        if: always()
+        run: |
+            find ~/logs -type f | while read -r file; do
+                echo "==> $file <=="
+                cat "$file"
+                echo
+            done
+
+    #   - name: cat output
+    #     if: always()
+    #     run: |
+    #         find tests/qemu-tests/output/ -type f | while read -r file; do
+    #             echo "==> $file <=="
+    #             cat "$file"
+    #             echo
+    #         done
 
       # Upload logs from the VM
       - name: Upload VM Logs
