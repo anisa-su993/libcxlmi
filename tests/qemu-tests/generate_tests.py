@@ -1,7 +1,10 @@
 import sys
-import topo
+import os
+import suites
 from parse_docs import generate_default_opcode_map
 import xml.etree.ElementTree as ET
+
+CURR_DIR = os.path.dirname(os.path.abspath(__file__))
 
 PREFIX = """#include <stdio.h>
 #include <stdlib.h>
@@ -221,7 +224,7 @@ def generate_ioctl_code(devname='mem0'):
     ep = cxlmi_open(ctx, "{devname}");
     if (!ep) {{
         fprintf(stdout, "Failed to open device %s\\n", "{devname}");
-        goto cleanup;
+        goto exit_free_ctx;
     }}
 
     printf("Opened endpoint on device %s\\n", "{devname}");
@@ -234,7 +237,7 @@ def generate_mctp_code(nid=0, eid=0):
 
     if (!ep) {{
         printf("Failed to open MCTP EP with NID:EID =  %d:%d\\n", {nid}, {eid});
-        goto cleanup;
+        goto exit_free_ctx;
     }}
 
     printf("Opened MCTP EP with NID:EID =  %d:%d\\n", {nid}, {eid});
@@ -246,7 +249,7 @@ def generate_test_file(output_file, command, suite_info, opcode_map):
     if not opcode_map:
         opcode_map = generate_default_opcode_map()
 
-    with open(output_file, 'a', newline='') as f:
+    with open(output_file, 'w', newline='') as f:
         # Write the prefix (C file header) to the file
         f.write(PREFIX + "\n")
 
@@ -268,14 +271,13 @@ def generate_test_file(output_file, command, suite_info, opcode_map):
 
         # Write the footer to the file
         f.write(FOOTER)
-        G_COUNT = 1  # Reset the global counter for the next topo
+        G_COUNT = 1  # Reset the global counter for the next suites
 
 def load_xml(file_path):
     tree = ET.parse(file_path)
     return tree.getroot()
 
 def generate_build_file(build_file, test_file):
-
     with open(build_file, 'a') as f:
         f.write(f"""
 executable(
@@ -291,10 +293,11 @@ if __name__ == "__main__":
         print("Usage: python generate_tests.py <suite>")
         sys.exit(1)
 
-    suite = topo.SUITES[sys.argv[1].upper()]
-    root = load_xml(suite['input'])
+    suite = suites.SUITES[sys.argv[1].upper()]
+    root = load_xml(CURR_DIR + '/' + suite['input'])
     opcode_map = generate_default_opcode_map()
 
     for command in root:
         output = f'test-{command.get("opcode")}.c'
+        print(f'Generating {output}')
         generate_test_file(output, command, suite, opcode_map)
