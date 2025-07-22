@@ -30,11 +30,21 @@ jobs:
             echo "pwd" && pwd
             echo "whoami" && whoami
 
+      # Remove cxl-test-tool dir from image and use fresh clone
+      - name: Clone cxl-test-tool
+        run: |
+            CXL_TEST_TOOL_URL=https://github.com/anisa-su993/anisa-cxl-test-tool.git
+            CXL_TEST_TOOL_BRANCH=libcxlmi-testing
+            rm -rf /root/cxl-test-tool
+            git clone --single-branch --branch $CXL_TEST_TOOL_BRANCH $CXL_TEST_TOOL_URL ~/cxl-test-tool
+            rm /usr/local/bin/cxl-tool
+            ln -s ~/cxl-test-tool/cxl-tool.py /usr/local/bin/cxl-tool
+
       # Test VM Startup & SSH Connection
       - name: Test Start VM
         run: |
           TOPO='-object memory-backend-file,id=cxl-mem1,share=on,mem-path=/tmp/cxltest.raw,size=512M -object memory-backend-file,id=cxl-lsa1,share=on,mem-path=/tmp/lsa.raw,size=1M -device pxb-cxl,bus_nr=12,bus=pcie.0,id=cxl.1,hdm_for_passthrough=true -device cxl-rp,port=0,bus=cxl.1,id=root_port13,chassis=0,slot=2 -device cxl-type3,bus=root_port13,memdev=cxl-mem1,lsa=cxl-lsa1,id=cxl-pmem0,sn=0xabcd -M cxl-fmw.0.targets.0=cxl.1,cxl-fmw.0.size=4G,cxl-fmw.0.interleave-granularity=8k'
-          echo "cxl-tool --run -A tcg --raw -T '$TOPO'" && cxl-tool --run --raw -T "$TOPO"
+          echo "cxl-tool --run -A tcg --raw -T '$TOPO'" && cxl-tool --run -A tcg --raw -T "$TOPO"
 
       - name: Wait for QEMU guest to boot
         run: |
