@@ -36,9 +36,9 @@ jobs:
             CXL_TEST_TOOL_URL=https://github.com/anisa-su993/anisa-cxl-test-tool.git
             CXL_TEST_TOOL_BRANCH=libcxlmi-testing
             rm -rf /root/cxl-test-tool
-            git clone --single-branch --branch $CXL_TEST_TOOL_BRANCH $CXL_TEST_TOOL_URL ~/cxl-test-tool
             rm /usr/local/bin/cxl-tool
-            ln -s ~/cxl-test-tool/cxl-tool.py /usr/local/bin/cxl-tool
+            git clone --single-branch --branch $CXL_TEST_TOOL_BRANCH $CXL_TEST_TOOL_URL /root/cxl-test-tool
+            ln -s /root/cxl-test-tool/cxl-tool.py /usr/local/bin/cxl-tool
 
       # Test VM Startup & SSH Connection
       - name: Test Start VM
