@@ -246,6 +246,7 @@ def run_suite(suite) -> tuple[int, int]:
     # Shut down VM and clean up
     try:
         wait_for_shutdown(QEMU_LOG)
+        time.sleep(5)
     except TimeoutError as e:
         print(f"⛔ {e}")
 

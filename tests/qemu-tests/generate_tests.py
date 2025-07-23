@@ -34,9 +34,9 @@ static inline void freep(void *p)
 ASSERT_MACRO = """
 #define ASSERT_EQUAL(expected, actual) \\
     if (expected != actual) { \\
-        printf("Assertion failed: %s.%s = %llu, %s->%s = %llu\\n", \\
-               #expected, expected, \\
-               #actual, actual); \\
+        printf("Assertion failed: %s = %llu, %s = %llu\\n", \\
+               #expected, (unsigned long long)(expected), \\
+               #actual, (unsigned long long)(actual)); \\
         rc = EXIT_FAILURE; \\
     }
 """
