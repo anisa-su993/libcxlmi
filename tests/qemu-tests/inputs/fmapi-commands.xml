@@ -10,6 +10,14 @@
             <component_type>3</component_type>
         </response>
     </command>
+    <command opcode="0004">
+        <request>
+            <limit>10</limit>
+        </request>
+        <response>
+            <limit>10</limit>
+        </response>
+    </command>
     <command opcode="5601">
         <request>
             <host_id>0</host_id>

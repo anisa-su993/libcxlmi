@@ -79,6 +79,11 @@ jobs:
             echo "cat /root/.ssh/known_hosts" && cat /root/.ssh/known_hosts
             echo 'ssh -v -p 2025 root@localhost "ls"' && ssh -v -p 2025 root@localhost "ls"
 
+      # Set up NDCTL on VM, to skip later when booting up actual test VMs
+      - name: Install NDCTL
+        run: |
+            cxl-tool --install-ndctl
+
       - name: Test VM Shutdown
         run: |
             QEMU_LOG=~/logs/qemu0.log

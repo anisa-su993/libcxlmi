@@ -236,11 +236,11 @@ def generate_c_code(command, opcode_map):
     if response is not None:
         cast_rsp = f"{rsp_struct} *{actual} = ({rsp_struct} *) {RSP_BUF};"
         if request is not None:
-            function_call = f"{func}(ep, {TUNNEL_INFO}, &{req_str}, {actual})"
+            function_call = f"{func}(ep, {TUNNEL_INFO}, {req_str}, {actual})"
         else:
             function_call = f"{func}(ep, {TUNNEL_INFO}, {actual})"
     elif request is not None:
-        function_call = f"{func}(ep, {TUNNEL_INFO}, &{req_str})"
+        function_call = f"{func}(ep, {TUNNEL_INFO}, {req_str})"
     else:
         function_call = f"{func}(ep, {TUNNEL_INFO})"
 

@@ -1,12 +1,4 @@
 <root>
-    <command opcode="0004">
-        <request>
-            <limit>10</limit>
-        </request>
-        <response>
-            <limit>10</limit>
-        </response>
-    </command>
     <command opcode="0500">
         <request>
             <count>64</count>
@@ -28,13 +20,5 @@
         <response>
             <!-- Skipping actual feature_data check -->
         </response>
-    </command>
-    <command opcode="0502">
-        <request>
-            <feature_id type="uuid"> 0xe5b13f22, 0x2328, 0x4a14, 0xb8, 0xba, 0xb9, 0x69, 0x1e, 0x89, 0x33, 0x86 </feature_id>
-            <offset> 0 </offset>
-            <version> 1 </version>
-            <!-- Skipping filling in actual feature data -->
-        </request>
     </command>
 </root>

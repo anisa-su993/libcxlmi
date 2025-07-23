@@ -18,7 +18,6 @@ VM_USER = 'root'
 VM_HOSTNAME = 'localhost'
 QEMU_LOG = os.path.join(os.path.expanduser("~"), 'logs', 'qemu0.log')
 opcode_map = {}
-drivers_installed = False
 
 # Create output dir for generating test code
 os.makedirs(CURR_DIR + '/output', exist_ok=True)
@@ -64,7 +63,6 @@ def wait_for_shutdown(log_path, timeout=60):
     if any("reboot: Power down" in line for line in last_lines):
         print("✅ QEMU Guest Shut Down!")
         return
-
     # Otherwise, wait for shut down message
     start = time.time()
     for line in monitor(log_path):
@@ -124,17 +122,9 @@ def start_vm(suite):
         run_shell_cmd("cxl-tool --setup-mctp")
         print('-------------------------------------------------')
 
-    global drivers_installed
-    if not drivers_installed:
-        # Load drivers and ndctl
-        print("Installing NDCTL")
-        run_on_vm("apt-get update")
-        run_shell_cmd("cxl-tool --install-ndctl")
-        print('-------------------------------------------------')
-        print("Loading Drivers")
-        run_shell_cmd("cxl-tool --load-drv")
-        print('-------------------------------------------------')
-        drivers_installed = True
+    print("Loading Drivers")
+    run_shell_cmd("cxl-tool --load-drv")
+    print('-------------------------------------------------')
 
     # Show topo info as debug output
     run_on_vm("cxl list")
