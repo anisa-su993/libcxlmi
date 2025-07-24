@@ -14,7 +14,7 @@ jobs:
   qemu-tests:
     runs-on: ubuntu-latest
     container:
-      image: anisasu/cxl-qemu-image
+      image: anisasu/mctp-usb-image
       options: --user root
 
     defaults:

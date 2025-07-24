@@ -121,7 +121,7 @@ def start_vm(suite):
 
     # Set up MCTP
     if suite["mctp"] is not None:
-        run_shell_cmd("cxl-tool --setup-mctp")
+        run_shell_cmd("cxl-tool --setup-mctp-usb")
         print('-------------------------------------------------')
 
     print("Loading Drivers")
