@@ -14,7 +14,7 @@ jobs:
   qemu-tests:
     runs-on: ubuntu-latest
     container:
-      image: anisasu/cxl-qemu-image
+      image: anisasu/dcd-v6-image
       options: --user root
 
     defaults:
@@ -36,8 +36,6 @@ jobs:
         run: |
             CXL_TEST_TOOL_URL=https://github.com/anisa-su993/anisa-cxl-test-tool.git
             CXL_TEST_TOOL_BRANCH=libcxlmi-testing
-            rm -rf /root/cxl-test-tool
-            rm /usr/local/bin/cxl-tool
             git clone --single-branch --branch $CXL_TEST_TOOL_BRANCH $CXL_TEST_TOOL_URL ~/cxl-test-tool
             ln -s ~/cxl-test-tool/cxl-tool.py /usr/local/bin/cxl-tool
 

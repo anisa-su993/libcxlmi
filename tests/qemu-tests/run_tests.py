@@ -89,9 +89,6 @@ def run_on_vm(cmd:str):
 
 def install_libcxlmi_on_vm(target_dir="/tmp/libcxlmi"):
     print('Copy libcxlmi to VM')
-    print('Install necessary packages on VM')
-    run_on_vm('apt-get update && apt-get install -y rsync')
-    run_on_vm('apt-get install -y meson libdbus-1-dev git cmake locales')
     cmd = f"""rsync -av -e 'ssh -p {VM_PORT}' \
           --exclude='.git/' \
           --exclude='build/' \
@@ -121,7 +118,7 @@ def start_vm(suite):
 
     # Set up MCTP
     if suite["mctp"] is not None:
-        run_shell_cmd("cxl-tool --setup-mctp")
+        run_shell_cmd("cxl-tool --setup-mctp-usb")
         print('-------------------------------------------------')
 
     print("Loading Drivers")
@@ -131,6 +128,10 @@ def start_vm(suite):
     # Show topo info as debug output
     run_on_vm("cxl list")
     print('-------------------------------------------------')
+
+    print('Install necessary packages on VM')
+    run_on_vm('apt-get update && apt-get install -y rsync')
+    run_on_vm('apt-get install -y meson libdbus-1-dev git cmake locales')
 
     # Copy current libcxlmi repo to VM and compile
     libcxlmi_path = "/tmp/libcxlmi"
