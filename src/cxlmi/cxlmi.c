@@ -1249,9 +1249,9 @@ err_close_ep:
 
 #ifdef CONFIG_DBUS
 
-#define MCTP_DBUS_PATH "/xyz/openbmc_project/mctp"
-#define MCTP_DBUS_IFACE "xyz.openbmc_project.MCTP"
-#define MCTP_DBUS_IFACE_ENDPOINT "xyz.openbmc_project.MCTP.Endpoint"
+#define MCTP_DBUS_PATH "/au/com/codeconstruct/mctp1"
+#define MCTP_DBUS_IFACE "au.com.codeconstruct.MCTP1"
+#define MCTP_DBUS_IFACE_ENDPOINT "au.com.codeconstruct.MCTP1.Endpoint"
 
 static int cxlmi_mctp_add(struct cxlmi_ctx *ctx, unsigned int netid, __u8 eid)
 {
