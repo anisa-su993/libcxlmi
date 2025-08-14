@@ -1,34 +1,42 @@
-name: CI-Coverity-Scan
+name: Coverity Scan
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
-  build:
+  coverity-scan:
     runs-on: ubuntu-latest
 
-    # Permissions for the GITHUB_TOKEN
-    permissions:
-      contents: read          # Allow actions/checkout to read the repo
-      pull-requests: write    # Allow the scan action to post PR comments
-
     steps:
-      # Step 1: Check out the repository code
-      - name: Checkout Source
+      - name: Checkout source code
         uses: actions/checkout@v4
 
-      # Step 2: Run the Coverity Security Scan
-      - name: Coverity Security Scan
-        uses: blackduck-inc/black-duck-security-scan@v2.1.1
-        with:
-          coverity_url: ${{ vars.COVERITY_URL }}
-          coverity_user: ${{ vars.COVERITY_USER }}
-          coverity_passphrase: ${{ secrets.COVERITY_PASSPHRASE }}
+      - name: Download Coverity Scan tools
+        run: |
+          curl -L -o coverity.tgz https://scan.coverity.com/download/latest/linux64
+          tar -xzf coverity.tgz
+          echo "$PWD/cov-analysis-linux64-*/bin" >> $GITHUB_PATH
 
-          # Enable posting comments on Pull Requests
-          coverity_prComment_enabled: true
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and analyze
+        run: |
+          meson setup -Dlibdbus=enabled build
+          cov-build --dir cov-int meson compile -C build
+
+      - name: Package analysis results
+        run: tar czf coverity-output.tgz cov-int
+
+      - name: Upload results to Coverity Scan
+        run: |
+          PROJECT_NAME="computexpresslink-libcxlmi"
+          curl --form token=${{ secrets.COVERITY_SCAN_TOKEN }} \
+               --form email=${{ secrets.COVERITY_SCAN_EMAIL }} \
+               --form file=@coverity-output.tgz \
+               --form version="${{ github.sha }}" \
+               --form description="GitHub Actions build" \
+               https://scan.coverity.com/builds?project=$PROJECT_NAME
