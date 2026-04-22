@@ -22,3 +22,12 @@ executable(
     dependencies: libcxlmi_dep,
     include_directories: [inc]
 )
+
+if enable_libpci
+    executable(
+        'cxl-vfio',
+        ['cxl-vfio.c'],
+        dependencies: libcxlmi_dep,
+        include_directories: [inc]
+    )
+endif

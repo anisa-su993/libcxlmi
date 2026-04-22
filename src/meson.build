@@ -8,8 +8,13 @@ sources = [
 	'cxlmi/log.c',
 	'cxlmi/commands.c',
 	'cxlmi/cxlmi.c',
-	'cxlmi/mock.c'
+	'cxlmi/mock.c',
+	'cxlmi/vfio.c'
 ]
+
+if enable_libpci
+    deps += libpci_dep
+endif
 
 cxlmi = library('cxlmi', # defaults to shared lib
 		sources,
