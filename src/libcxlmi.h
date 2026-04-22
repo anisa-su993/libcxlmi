@@ -87,6 +87,37 @@ int cxlmi_scan_mctp(struct cxlmi_ctx *ctx);
 struct cxlmi_endpoint *cxlmi_open(struct cxlmi_ctx *ctx, const char *devname);
 
 /**
+ * cxlmi_open_vfio() - Create an endpoint that sends commands to a CXL device's
+ * Primary Mailbox registers over VFIO (userspace MMIO).
+ * @ctx: library context object to create under
+ * @pci_bdf: PCI address of the CXL PCIe function, e.g. "0000:3d:00.0" or
+ *	     "3d:00.0" (domain defaults to 0000). The function must already be
+ *	     bound to the vfio-pci driver and its IOMMU group must be
+ *	     accessible to the current user (typically via /dev/vfio/<group>).
+ *
+ * Uses libpci to walk the PCIe Extended Capability chain looking for the CXL
+ * Register Locator DVSEC (CXL r3.1 Section 8.1.9), from which it locates the
+ * CXL Device Register Block. It then parses the Device Capabilities Array to
+ * find the Primary Mailbox registers (Section 8.2.8) and maps the containing
+ * BAR through VFIO so subsequent CCI commands go directly to the mailbox
+ * without traversing the kernel CXL driver.
+ *
+ * This is primarily intended for FM-owned access to a Multi-Headed Device
+ * (MHD): direct commands go to the FM-owned LD's primary mailbox, while
+ * tunneled commands to the LD Pool CCI continue to work through
+ * DEFINE_CXLMI_TUNNEL_MHD / CXLMI_TUNNEL_MHD.
+ *
+ * If libcxlmi was built without libpci support, this function always fails
+ * and sets errno to ENOTSUP.
+ *
+ * Return: New endpoint for @pci_bdf, or NULL on failure (errno set).
+ *
+ * See &cxlmi_close
+ */
+struct cxlmi_endpoint *cxlmi_open_vfio(struct cxlmi_ctx *ctx,
+				       const char *pci_bdf);
+
+/**
  * cxlmi_scan() - look for ioctl-connected CXL endpoints.
  * @ctx: library context object to create under
  *

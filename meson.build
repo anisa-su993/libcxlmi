@@ -74,6 +74,18 @@ endif
 conf.set('CONFIG_DBUS', libdbus_dep.found(), description: 'Enable dbus support?')
 conf.set('SUPPORT_CXL_2_0', get_option('cxl2_0_mode').enabled(), description: 'Enable CXL 2.0 compatibility mode')
 
+# libpci: used by the VFIO transport to discover CXL Primary Mailbox registers.
+# Requires <linux/vfio.h> as well. If either is missing we fall back to a stub.
+libpci_opt = get_option('libpci')
+libpci_dep = dependency('libpci', required: libpci_opt)
+have_vfio_header = cc.has_header('linux/vfio.h')
+enable_libpci = libpci_dep.found() and have_vfio_header
+if libpci_opt.enabled() and not enable_libpci
+    error('libpci feature requested but libpci or <linux/vfio.h> is missing')
+endif
+conf.set('CONFIG_LIBPCI', enable_libpci,
+         description: 'Enable libpci-based VFIO transport')
+
 conf.set10(
     'HAVE_TYPEOF',
     cc.compiles(
@@ -214,6 +226,7 @@ if meson.version().version_compare('>=0.53.0')
     summary(path_dict, section: 'Paths')
     dep_dict = {
 	'libdbus':           libdbus_dep.found(),
+	'libpci (VFIO)':     enable_libpci,
     }
     summary(dep_dict, section: 'Dependencies')
 endif
