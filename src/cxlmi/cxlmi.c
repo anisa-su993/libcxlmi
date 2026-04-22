@@ -189,7 +189,7 @@ static void cxlmi_insert_delay(struct cxlmi_endpoint *ep)
 	nanosleep(&delay, NULL);
 }
 
-static struct cxlmi_endpoint *init_endpoint(struct cxlmi_ctx *ctx)
+struct cxlmi_endpoint *init_endpoint(struct cxlmi_ctx *ctx)
 {
 	struct cxlmi_endpoint *ep;
 
@@ -326,6 +326,10 @@ CXLMI_EXPORT void cxlmi_close(struct cxlmi_endpoint *ep)
 
 	if (cxlmi_is_mock_endpoint(ep)) {
 		mock_close(ep);
+#ifdef CONFIG_LIBPCI
+	} else if (cxlmi_is_vfio_endpoint(ep)) {
+		vfio_close_transport(ep);
+#endif
 	} else if (ep->transport_data) {
 		mctp_close(ep);
 		free(ep->transport_data);
@@ -1140,6 +1144,16 @@ int send_cmd_cci(struct cxlmi_endpoint *ep, struct cxlmi_tunnel_info *ti,
 	if (cxlmi_is_mock_endpoint(ep)) {
 		rc = send_mock_cmd(ep, req_msg, req_msg_sz,
 				   rsp_msg, rsp_msg_sz, rsp_msg_sz_min);
+#ifdef CONFIG_LIBPCI
+	} else if (cxlmi_is_vfio_endpoint(ep)) {
+		/*
+		 * VFIO primary mailbox is in-band MMIO: tunneling is supported
+		 * at the CCI layer because each tunnel wrapper is just a
+		 * regular CCI command that the mailbox treats as opaque.
+		 */
+		rc = send_vfio_direct(ep, req_msg, req_msg_sz,
+				      rsp_msg, rsp_msg_sz, rsp_msg_sz_min);
+#endif
 	} else if (ep->transport_data) {
 		if (!ti || ti->level == 0)
 			rc = send_mctp_direct(ep, fmapi_cmd, req_msg, req_msg_sz,
@@ -1222,7 +1236,7 @@ static void endpoint_probe_mctp(struct cxlmi_endpoint *ep)
 	ep->has_fmapi = true;
 }
 
-static void endpoint_probe(struct cxlmi_endpoint *ep)
+void endpoint_probe(struct cxlmi_endpoint *ep)
 {
 	if (!ep->ctx->probe_enabled)
 		return;

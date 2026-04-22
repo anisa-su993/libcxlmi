@@ -324,6 +324,9 @@ struct cxlmi_endpoint {
 	int fd;
 	char *devname;
 
+	/* vfio (primary mbox via direct MMIO, NULL unless VFIO transport) */
+	void *vfio_data;
+
 	bool has_fmapi;
 
 	struct list_node entry;
@@ -362,5 +365,21 @@ int send_cmd_cci(struct cxlmi_endpoint *ep, struct cxlmi_tunnel_info *ti,
 		 struct cxlmi_cci_msg *req_msg, size_t req_msg_sz,
 		 struct cxlmi_cci_msg *rsp_msg, size_t rsp_msg_sz,
 		 size_t rsp_msg_sz_min);
+
+/* shared endpoint lifecycle helpers (used by vfio.c) */
+struct cxlmi_endpoint *init_endpoint(struct cxlmi_ctx *ctx);
+void endpoint_probe(struct cxlmi_endpoint *ep);
+
+/* vfio transport (only built when libpci is available) */
+static inline bool cxlmi_is_vfio_endpoint(struct cxlmi_endpoint *ep)
+{
+	return ep && ep->vfio_data != NULL;
+}
+
+void vfio_close_transport(struct cxlmi_endpoint *ep);
+int send_vfio_direct(struct cxlmi_endpoint *ep,
+		     struct cxlmi_cci_msg *req_msg, size_t req_msg_sz,
+		     struct cxlmi_cci_msg *rsp_msg, size_t rsp_msg_sz,
+		     size_t rsp_msg_sz_min);
 
 #endif /* _LIBCXLMI_PRIVATE_H */
