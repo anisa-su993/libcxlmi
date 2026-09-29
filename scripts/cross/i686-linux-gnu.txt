@@ -1,0 +1,21 @@
+# Meson cross file: 32-bit x86 build on an x86-64 host with gcc-multilib.
+# Usage: meson setup build --cross-file scripts/cross/i686-linux-gnu.txt
+# Needs i386 multiarch packages for dependencies (e.g. libdbus-1-dev:i386).
+
+[binaries]
+c = ['gcc', '-m32']
+ar = 'ar'
+strip = 'strip'
+pkg-config = 'pkg-config'
+
+[built-in options]
+c_link_args = ['-m32']
+
+[properties]
+pkg_config_libdir = '/usr/lib/i386-linux-gnu/pkgconfig'
+
+[host_machine]
+system = 'linux'
+cpu_family = 'x86'
+cpu = 'i686'
+endian = 'little'
