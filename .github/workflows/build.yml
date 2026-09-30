@@ -76,6 +76,30 @@ jobs:
       - name: Run mock tests
         run: meson test -C build
 
+  build-armhf:
+    name: Build (gcc, armhf cross + qemu-user)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y meson gcc-arm-linux-gnueabihf qemu-user-static
+
+      - name: Configure
+        run: >
+          meson setup build
+          --cross-file scripts/cross/arm-linux-gnueabihf.txt
+          --cross-file scripts/cross/qemu-arm.txt
+          -Dlibdbus=disabled --werror
+
+      - name: Build
+        run: meson compile -C build
+
+      - name: Run mock tests
+        run: meson test -C build
+
   build-options:
     name: Options (${{ matrix.name }}, ${{ matrix.arch }})
     runs-on: ${{ matrix.os }}
