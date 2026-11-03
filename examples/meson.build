@@ -22,3 +22,10 @@ executable(
     dependencies: libcxlmi_dep,
     include_directories: [inc]
 )
+
+executable(
+    'dc-extent-list',
+    ['dc-extent-list.c'],
+    dependencies: libcxlmi_dep,
+    include_directories: [inc]
+)
